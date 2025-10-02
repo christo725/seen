@@ -87,8 +87,8 @@ export default function ProfilePage() {
 
       if (profileData) {
         setProfile(profileData as ExtendedProfile)
-        setUsername(profileData.username || '')
-        setFullName(profileData.full_name || '')
+        setUsername((profileData as any).username || '')
+        setFullName((profileData as any).full_name || '')
         setBio((profileData as any).bio || '')
         setLocation((profileData as any).location || '')
         setWebsite((profileData as any).website || '')
