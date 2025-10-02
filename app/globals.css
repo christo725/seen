@@ -1,8 +1,23 @@
 @import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #030014;
+  --foreground: #e5e7eb;
+  --card: #111827;
+  --card-foreground: #f3f4f6;
+  --primary: #9333ea;
+  --primary-foreground: #ffffff;
+  --secondary: #3b82f6;
+  --secondary-foreground: #ffffff;
+  --accent: #8b5cf6;
+  --accent-foreground: #ffffff;
+  --muted: #374151;
+  --muted-foreground: #9ca3af;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --border: #1f2937;
+  --input: #1f2937;
 }
 
 @theme inline {
@@ -12,15 +27,94 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Custom scrollbar for dark theme */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #111827;
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(to bottom, #9333ea, #3b82f6);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(to bottom, #a855f7, #60a5fa);
+}
+
+/* Mapbox Geocoder Dark Theme */
+.mapbox-gl-geocoder {
+  background: transparent !important;
+}
+
+.mapbox-gl-geocoder--input {
+  background: rgba(31, 41, 55, 0.5) !important;
+  border: 1px solid #374151 !important;
+  color: #e5e7eb !important;
+}
+
+.mapbox-gl-geocoder--input::placeholder {
+  color: #6b7280 !important;
+}
+
+.mapbox-gl-geocoder--input:focus {
+  border-color: #9333ea !important;
+  box-shadow: 0 0 0 3px rgba(147, 51, 234, 0.1) !important;
+}
+
+.mapbox-gl-geocoder--suggestions {
+  background: #1f2937 !important;
+  border: 1px solid #374151 !important;
+}
+
+.mapbox-gl-geocoder--suggestion {
+  color: #e5e7eb !important;
+}
+
+.mapbox-gl-geocoder--suggestion:hover,
+.mapbox-gl-geocoder--suggestion-active {
+  background: #374151 !important;
+}
+
+.mapbox-gl-geocoder--icon-search {
+  fill: #9333ea !important;
+}
+
+/* Map container styles */
+.leaflet-container {
+  background: #111827 !important;
+}
+
+.leaflet-popup-content-wrapper {
+  background: rgba(31, 41, 55, 0.95) !important;
+  color: #e5e7eb !important;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(147, 51, 234, 0.3) !important;
+}
+
+.leaflet-popup-tip {
+  background: rgba(31, 41, 55, 0.95) !important;
+}
+
+/* Animations */
+@keyframes gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient 3s ease infinite;
 }
