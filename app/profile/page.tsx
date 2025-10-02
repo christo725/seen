@@ -69,7 +69,7 @@ export default function ProfilePage() {
 
       // If profile doesn't exist, create it
       if (profileError && profileError.code === 'PGRST116') {
-        const { data: newProfile, error: createError } = await supabase
+        const { data: newProfile, error: createError } = await (supabase as any)
           .from('profiles')
           .insert({
             id: user.id,
