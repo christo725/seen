@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
       .from('uploads')
       .select('*')
       .eq('id', uploadId)
-      .single()
+      .single() as any
 
     if (uploadError || !upload) {
       return NextResponse.json({ error: 'Upload not found' }, { status: 404 })
@@ -105,7 +105,7 @@ export async function GET(request: NextRequest) {
       .from('uploads')
       .select('*')
       .is('ai_verification_result', null)
-      .limit(10)
+      .limit(10) as any
 
     if (error) {
       return NextResponse.json({ error: 'Failed to fetch uploads' }, { status: 500 })
