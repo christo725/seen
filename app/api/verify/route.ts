@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
       console.error('Verification failed for upload:', uploadId, errorMessage)
       
       // Update database with error status
-      await supabase
+      await (supabase as any)
         .from('uploads')
         .update({
           ai_verified: false,
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
     ].join('').trim()
 
     // Update database with verification result
-    const { error: updateError } = await supabase
+    const { error: updateError } = await (supabase as any)
       .from('uploads')
       .update({
         ai_verified: verification.verified,
@@ -134,7 +134,7 @@ export async function GET(request: NextRequest) {
             : ''
         ].join('').trim()
 
-        await supabase
+        await (supabase as any)
           .from('uploads')
           .update({
             ai_verified: verification.verified,
@@ -154,7 +154,7 @@ export async function GET(request: NextRequest) {
         console.error('Batch verification failed for upload:', upload.id, errorMessage)
         
         // Update database with error status
-        await supabase
+        await (supabase as any)
           .from('uploads')
           .update({
             ai_verified: false,
