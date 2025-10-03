@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { User } from '@supabase/supabase-js'
 import { Upload, Profile } from '@/types/database'
 import { format } from 'date-fns'
-import { Trash2, MapPin, CheckCircle, XCircle, Loader2, Edit2, Save, X, Camera, Video, User as UserIcon, Globe, Twitter, Instagram, Linkedin, Github, Mail, Phone, MapPinIcon, Calendar, Award, Shield } from 'lucide-react'
+import { Trash2, MapPin, CheckCircle, XCircle, Loader2, Edit2, Save, X, Camera, Video, User as UserIcon, Globe, Twitter, Instagram, Linkedin, Github, Mail, Phone, MapPinIcon, Calendar, Award, Shield, AlertTriangle } from 'lucide-react'
 
 interface ExtendedProfile extends Profile {
   bio?: string
@@ -251,7 +251,15 @@ export default function ProfilePage() {
   }
 
   const getTotalVerified = () => {
-    return uploads.filter(u => u.ai_verified).length
+    return uploads.filter(u => u.verification_status === 'verified').length
+  }
+
+  const getTotalWithIssues = () => {
+    return uploads.filter(u => u.verification_status === 'potential_issues').length
+  }
+
+  const getTotalPending = () => {
+    return uploads.filter(u => u.ai_verification_result === null).length
   }
 
   const getTotalUploads = () => {
@@ -334,32 +342,28 @@ export default function ProfilePage() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
           <div className="bg-gray-800/50 border border-purple-900/30 rounded-lg p-4 text-center">
             <div className="text-2xl font-bold text-gray-100">{getTotalUploads()}</div>
             <div className="text-sm text-gray-400">Total Uploads</div>
           </div>
-          <div className="bg-gray-800/50 border border-purple-900/30 rounded-lg p-4 text-center">
+          <div className="bg-gray-800/50 border border-green-900/30 rounded-lg p-4 text-center">
             <div className="text-2xl font-bold text-green-400">{getTotalVerified()}</div>
             <div className="text-sm text-gray-400">Verified</div>
           </div>
+          <div className="bg-gray-800/50 border border-yellow-900/30 rounded-lg p-4 text-center">
+            <div className="text-2xl font-bold text-yellow-400">{getTotalWithIssues()}</div>
+            <div className="text-sm text-gray-400">Potential Issues</div>
+          </div>
+          <div className="bg-gray-800/50 border border-blue-900/30 rounded-lg p-4 text-center">
+            <div className="text-2xl font-bold text-blue-400">{getTotalPending()}</div>
+            <div className="text-sm text-gray-400">Processing</div>
+          </div>
           <div className="bg-gray-800/50 border border-purple-900/30 rounded-lg p-4 text-center">
-            <div className="text-2xl font-bold text-purple-400">
+            <div className="text-lg font-bold text-purple-400">
               {profile?.created_at ? format(new Date(profile.created_at), 'MMM yyyy') : 'N/A'}
             </div>
             <div className="text-sm text-gray-400">Member Since</div>
-          </div>
-          <div className="bg-gray-800/50 border border-purple-900/30 rounded-lg p-4 text-center">
-            <div className="flex justify-center mb-1">
-              {profile?.verified ? (
-                <Shield className="h-8 w-8 text-blue-400" />
-              ) : (
-                <Shield className="h-8 w-8 text-gray-500" />
-              )}
-            </div>
-            <div className="text-sm text-gray-400">
-              {profile?.verified ? 'Verified' : 'Not Verified'}
-            </div>
           </div>
         </div>
 
@@ -706,15 +710,20 @@ export default function ProfilePage() {
                         <Loader2 className="h-4 w-4 text-blue-400 animate-spin" />
                         <span className="text-xs text-blue-400">Verification Pending</span>
                       </>
-                    ) : upload.ai_verified ? (
+                    ) : upload.verification_status === 'verified' ? (
                       <>
                         <CheckCircle className="h-4 w-4 text-green-600" />
-                        <span className="text-xs text-green-600">AI Verified</span>
+                        <span className="text-xs text-green-600">Verified</span>
+                      </>
+                    ) : upload.verification_status === 'potential_issues' ? (
+                      <>
+                        <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                        <span className="text-xs text-yellow-500">Potential Issues</span>
                       </>
                     ) : (
                       <>
                         <XCircle className="h-4 w-4 text-gray-400" />
-                        <span className="text-xs text-gray-400">Not Verified</span>
+                        <span className="text-xs text-gray-400">Unverified</span>
                       </>
                     )}
                   </div>
