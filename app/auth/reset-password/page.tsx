@@ -2,7 +2,10 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
+
+// Make this a dynamic route
+export const dynamic = 'force-dynamic'
 
 function ResetPasswordForm() {
   const [password, setPassword] = useState('')
