@@ -179,7 +179,7 @@ export default function UploadPage() {
         quality: 0.9
       })
 
-      const blob = new Blob([outputBuffer], { type: 'image/jpeg' })
+      const blob = new Blob([outputBuffer.buffer as ArrayBuffer], { type: 'image/jpeg' })
       return new File([blob], heicFile.name.replace(/\\.heic$/i, '.jpg'), { type: 'image/jpeg' })
     } catch (err) {
       console.error('Error converting HEIC:', err)
@@ -375,7 +375,7 @@ export default function UploadPage() {
             if (typeof tags.gps.Latitude === 'number') {
               lat = tags.gps.Latitude
             } else if (tags.gps.Latitude && 'description' in tags.gps.Latitude) {
-              lat = parseFloat(tags.gps.Latitude.description as string)
+              lat = parseFloat((tags.gps.Latitude as any).description as string)
             } else {
               lat = parseFloat(String(tags.gps.Latitude))
             }
@@ -383,7 +383,7 @@ export default function UploadPage() {
             if (typeof tags.gps.Longitude === 'number') {
               lng = tags.gps.Longitude
             } else if (tags.gps.Longitude && 'description' in tags.gps.Longitude) {
-              lng = parseFloat(tags.gps.Longitude.description as string)
+              lng = parseFloat((tags.gps.Longitude as any).description as string)
             } else {
               lng = parseFloat(String(tags.gps.Longitude))
             }
@@ -732,7 +732,7 @@ export default function UploadPage() {
         const fileType = isImageFile ? 'image' : 'video'
 
         // Save upload metadata to database
-        const { error: dbError } = await supabase
+        const { error: dbError } = await (supabase as any)
           .from('uploads')
           .insert({
             user_id: user.id,
@@ -754,7 +754,7 @@ export default function UploadPage() {
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(1)
-          .single()
+          .single() as any
 
         // Trigger AI verification (don't wait for it)
         if (newUpload) {

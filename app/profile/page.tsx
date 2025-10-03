@@ -129,7 +129,7 @@ export default function ProfilePage() {
       }
 
       // Use update instead of upsert, and don't manually set updated_at (trigger handles it)
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('profiles')
         .update(updateData)
         .eq('id', user.id)
@@ -195,7 +195,7 @@ export default function ProfilePage() {
       }
 
       // Use session.user.id directly (not user?.id from state)
-      const { error, data } = await supabase
+      const { error, data } = await (supabase as any)
         .from('uploads')
         .update({ deleted_at: new Date().toISOString() })
         .eq('id', uploadId)
