@@ -203,6 +203,56 @@ export default function UploadPage() {
     return localTimeString
   }
 
+  // Helper function to generate a thumbnail from the first frame of a video
+  const generateVideoThumbnail = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const video = document.createElement('video')
+      const canvas = document.createElement('canvas')
+      const context = canvas.getContext('2d')
+
+      if (!context) {
+        reject(new Error('Could not get canvas context'))
+        return
+      }
+
+      video.addEventListener('loadedmetadata', () => {
+        // Set canvas dimensions to match video
+        canvas.width = video.videoWidth
+        canvas.height = video.videoHeight
+
+        // Seek to first frame
+        video.currentTime = 0
+      })
+
+      video.addEventListener('seeked', () => {
+        try {
+          // Draw first frame to canvas
+          context.drawImage(video, 0, 0, canvas.width, canvas.height)
+
+          // Convert canvas to blob and create object URL
+          canvas.toBlob((blob) => {
+            if (blob) {
+              const thumbnailUrl = URL.createObjectURL(blob)
+              resolve(thumbnailUrl)
+            } else {
+              reject(new Error('Failed to create thumbnail blob'))
+            }
+          }, 'image/jpeg', 0.8)
+        } catch (error) {
+          reject(error)
+        }
+      })
+
+      video.addEventListener('error', (e) => {
+        reject(new Error('Video loading error'))
+      })
+
+      // Load video
+      video.src = URL.createObjectURL(file)
+      video.load()
+    })
+  }
+
   // Helper function to get timezone offset for a location
   const getTimezoneForLocation = async (lat: number, lng: number): Promise<string> => {
     try {
@@ -628,8 +678,27 @@ export default function UploadPage() {
         fileToProcess = await convertHeicToJpeg(file)
       }
 
-      // Create preview
-      preview = URL.createObjectURL(fileToProcess)
+      // Create preview based on file type
+      if (file.type.startsWith('video/') ||
+          file.name.toLowerCase().endsWith('.mov') ||
+          file.name.toLowerCase().endsWith('.mp4') ||
+          file.name.toLowerCase().endsWith('.m4v') ||
+          file.name.toLowerCase().endsWith('.avi') ||
+          file.name.toLowerCase().endsWith('.webm')) {
+        // Generate thumbnail from first frame for videos
+        console.log('🎬 Generating video thumbnail from first frame...')
+        try {
+          preview = await generateVideoThumbnail(file)
+          console.log('✅ Video thumbnail generated successfully')
+        } catch (thumbnailError) {
+          console.warn('⚠️ Could not generate video thumbnail:', thumbnailError)
+          // Fallback to video icon
+          preview = ''
+        }
+      } else {
+        // Standard preview for images
+        preview = URL.createObjectURL(fileToProcess)
+      }
 
       return {
         id,
@@ -917,6 +986,21 @@ export default function UploadPage() {
                         alt="Preview"
                         className="w-full h-40 object-cover rounded"
                       />
+                    ) : fileUpload.preview ? (
+                      <div className="relative">
+                        <img
+                          src={fileUpload.preview}
+                          alt="Video thumbnail"
+                          className="w-full h-40 object-cover rounded"
+                        />
+                        {/* Video play icon overlay */}
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded">
+                          <Video className="h-12 w-12 text-white opacity-80" />
+                        </div>
+                        <div className="absolute bottom-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded">
+                          VIDEO
+                        </div>
+                      </div>
                     ) : (
                       <div className="w-full h-40 flex items-center justify-center bg-gray-800 rounded">
                         <Video className="h-16 w-16 text-gray-400" />
