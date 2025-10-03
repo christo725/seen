@@ -8,6 +8,29 @@ import { format } from 'date-fns'
 import * as Slider from '@radix-ui/react-slider'
 import { Calendar, CheckCircle, XCircle, Loader2, Filter, Search, Navigation, X, AlertTriangle } from 'lucide-react'
 
+// Helper function to parse local datetime string without timezone conversion
+const parseLocalDate = (dateString: string): Date => {
+  // Parse "YYYY-MM-DD HH:MM:SS" format directly without timezone conversion
+  const parts = dateString.match(/(\d{4})-(\d{2})-(\d{2})[\sT](\d{2}):(\d{2}):(\d{2})/)
+  if (!parts) return new Date(dateString) // fallback for unexpected format
+  
+  const [, year, month, day, hour, minute, second] = parts
+  return new Date(
+    parseInt(year),
+    parseInt(month) - 1, // months are 0-indexed
+    parseInt(day),
+    parseInt(hour),
+    parseInt(minute),
+    parseInt(second)
+  )
+}
+
+// Helper function to format local datetime string without timezone conversion
+const formatLocalDate = (dateString: string, formatPattern: string): string => {
+  const date = parseLocalDate(dateString)
+  return format(date, formatPattern)
+}
+
 // Dynamically import Leaflet components to avoid SSR issues
 const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false })
 const TileLayer = dynamic(() => import('react-leaflet').then(mod => mod.TileLayer), { ssr: false })
@@ -458,7 +481,7 @@ export default function MapView({ initialUploads = [] }: MapViewProps) {
 
         // Set min and max dates for the slider - use capture_date if available, otherwise created_at
         const dates = (data as Upload[]).map(u => 
-          u.capture_date ? new Date(u.capture_date) : new Date(u.created_at)
+          u.capture_date ? parseLocalDate(u.capture_date) : new Date(u.created_at)
         )
         setMinDate(new Date(Math.min(...dates.map(d => d.getTime()))))
         setMaxDate(new Date(Math.max(...dates.map(d => d.getTime()))))
@@ -541,7 +564,7 @@ export default function MapView({ initialUploads = [] }: MapViewProps) {
     const filtered = uploads.filter(upload => {
       // Use capture_date if available, otherwise fall back to created_at
       const uploadDate = upload.capture_date 
-        ? new Date(upload.capture_date) 
+        ? parseLocalDate(upload.capture_date) 
         : new Date(upload.created_at)
       return uploadDate >= startDate && uploadDate <= endDate
     })
@@ -930,7 +953,7 @@ export default function MapView({ initialUploads = [] }: MapViewProps) {
                     {/* Date */}
                     <p className="text-xs font-medium text-white">
                       📅 {currentUpload.capture_date 
-                        ? format(new Date(currentUpload.capture_date), 'MMM dd, yyyy • h:mm a')
+                        ? formatLocalDate(currentUpload.capture_date, 'MMM dd, yyyy • h:mm a')
                         : format(new Date(currentUpload.created_at), 'MMM dd, yyyy • h:mm a')}
                     </p>
 
@@ -1070,12 +1093,12 @@ export default function MapView({ initialUploads = [] }: MapViewProps) {
                   </p>
                   <p className="text-base font-bold text-gray-900">
                     {selectedUpload.capture_date 
-                      ? format(new Date(selectedUpload.capture_date), 'MMM dd, yyyy')
+                      ? formatLocalDate(selectedUpload.capture_date, 'MMM dd, yyyy')
                       : format(new Date(selectedUpload.created_at), 'MMM dd, yyyy')}
                   </p>
                   <p className="text-sm text-gray-700 font-medium">
                     {selectedUpload.capture_date 
-                      ? format(new Date(selectedUpload.capture_date), 'h:mm a')
+                      ? formatLocalDate(selectedUpload.capture_date, 'h:mm a')
                       : format(new Date(selectedUpload.created_at), 'h:mm a')}
                   </p>
                 </div>
