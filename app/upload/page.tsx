@@ -187,7 +187,23 @@ export default function UploadPage() {
     }
   }
 
-  const extractDateTimeFromMetadata = (metadata: any): Date | null => {
+  // Helper function to get timezone offset for a location
+  const getTimezoneForLocation = async (lat: number, lng: number): Promise<string> => {
+    try {
+      // Use a timezone API to get the timezone for the coordinates
+      // For now, we'll use a simple approximation based on longitude
+      // This is not perfect but better than assuming UTC
+      const timezoneOffset = Math.round(lng / 15) // Rough approximation: 15 degrees per hour
+      const sign = timezoneOffset >= 0 ? '+' : '-'
+      const hours = Math.abs(timezoneOffset).toString().padStart(2, '0')
+      return `${sign}${hours}:00`
+    } catch (error) {
+      console.log('Could not determine timezone, using UTC')
+      return '+00:00'
+    }
+  }
+
+  const extractDateTimeFromMetadata = (metadata: any, locationData?: { latitude: number, longitude: number }): Date | null => {
     // Try various datetime fields in order of preference
     const dateFields = [
       'DateTimeOriginal',      // EXIF: Original capture time
@@ -203,28 +219,47 @@ export default function UploadPage() {
         try {
           // Handle different date formats
           let dateValue = metadata[field]
-          
+
           // If it's already a Date object
           if (dateValue instanceof Date) {
             return dateValue
           }
-          
+
           // If it's a string, try to parse it
           if (typeof dateValue === 'string') {
             // EXIF dates are often in format: "2024:01:15 14:30:45"
             const exifDateMatch = dateValue.match(/^(\d{4}):(\d{2}):(\d{2})\s+(\d{2}):(\d{2}):(\d{2})/)
             if (exifDateMatch) {
               const [, year, month, day, hour, minute, second] = exifDateMatch
-              return new Date(`${year}-${month}-${day}T${hour}:${minute}:${second}`)
+
+              // EXIF timestamps are local time at the photo location
+              // We need to interpret them correctly based on the timezone
+              if (locationData) {
+                // Estimate timezone based on longitude (rough approximation)
+                const timezoneOffset = Math.round(locationData.longitude / 15)
+                const sign = timezoneOffset >= 0 ? '+' : '-'
+                const hours = Math.abs(timezoneOffset).toString().padStart(2, '0')
+                const timezone = `${sign}${hours}:00`
+
+                // Create ISO string with estimated timezone
+                const isoString = `${year}-${month}-${day}T${hour}:${minute}:${second}${timezone}`
+                console.log(`📅 Interpreting EXIF timestamp "${dateValue}" as local time at location (${locationData.latitude}, ${locationData.longitude})`)
+                console.log(`📅 Estimated timezone: ${timezone}, ISO string: ${isoString}`)
+                return new Date(isoString)
+              } else {
+                // No location data, treat as UTC (this is the fallback)
+                console.log(`📅 No location data available, treating EXIF timestamp "${dateValue}" as UTC`)
+                return new Date(`${year}-${month}-${day}T${hour}:${minute}:${second}Z`)
+              }
             }
-            
+
             // Try standard Date parsing
             const parsedDate = new Date(dateValue)
             if (!isNaN(parsedDate.getTime())) {
               return parsedDate
             }
           }
-          
+
           // If it's a number (timestamp)
           if (typeof dateValue === 'number') {
             return new Date(dateValue)
@@ -234,7 +269,7 @@ export default function UploadPage() {
         }
       }
     }
-    
+
     return null
   }
 
@@ -275,7 +310,11 @@ export default function UploadPage() {
             try {
               const allMetadata = await exifr.parse(file)
               if (allMetadata) {
-                captureDate = extractDateTimeFromMetadata(allMetadata)
+                // Pass location data to interpret timestamp correctly
+                captureDate = extractDateTimeFromMetadata(allMetadata, {
+                  latitude: exifData.latitude,
+                  longitude: exifData.longitude
+                })
                 console.log('Method 1 - Extracted capture date:', captureDate)
               }
             } catch (dateError) {
@@ -321,9 +360,13 @@ export default function UploadPage() {
             // Check various GPS fields that might exist
             const lat = allExifData.GPSLatitude || allExifData.latitude
             const lng = allExifData.GPSLongitude || allExifData.longitude
-            
-            // Extract datetime
-            const captureDate = extractDateTimeFromMetadata(allExifData)
+
+            // Extract datetime with location context if available
+            const captureDate = extractDateTimeFromMetadata(allExifData,
+              (lat && lng && typeof lat === 'number' && typeof lng === 'number')
+                ? { latitude: lat, longitude: lng }
+                : undefined
+            )
             console.log('Extracted capture date:', captureDate)
 
             if (lat && lng && typeof lat === 'number' && typeof lng === 'number') {
@@ -410,7 +453,7 @@ export default function UploadPage() {
           if (hasOtherMetadata) {
             console.log('Method 3 - Found other metadata, checking for datetime...')
             console.log('tags.exif:', tags.exif)
-            // Try to extract datetime from ExifReader tags
+            // Try to extract datetime from ExifReader tags (no location data available in this method)
             const captureDate = extractDateTimeFromMetadata(tags.exif || {})
             console.log('Method 3 - Extracted capture date:', captureDate)
             
@@ -490,7 +533,7 @@ export default function UploadPage() {
         }
         
         if (allMetadata) {
-          // Extract datetime
+          // Extract datetime (no location data available for video files yet)
           const captureDate = extractDateTimeFromMetadata(allMetadata)
           
           // Check for creation date or other useful metadata
