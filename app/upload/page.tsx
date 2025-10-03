@@ -187,6 +187,22 @@ export default function UploadPage() {
     }
   }
 
+  // Helper function to format DateTime as local time string (preserves EXIF local time)
+  const formatLocalDateTime = (date: Date): string => {
+    // Format as YYYY-MM-DD HH:MM:SS without timezone conversion
+    // This preserves the exact local time from EXIF
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const hour = String(date.getHours()).padStart(2, '0')
+    const minute = String(date.getMinutes()).padStart(2, '0')
+    const second = String(date.getSeconds()).padStart(2, '0')
+
+    const localTimeString = `${year}-${month}-${day} ${hour}:${minute}:${second}`
+    console.log(`📅 Storing capture date as local time: ${localTimeString}`)
+    return localTimeString
+  }
+
   // Helper function to get timezone offset for a location
   const getTimezoneForLocation = async (lat: number, lng: number): Promise<string> => {
     try {
@@ -785,7 +801,7 @@ export default function UploadPage() {
             latitude: fileUpload.location!.latitude,
             longitude: fileUpload.location!.longitude,
             location_source: fileUpload.location!.source === 'address' ? 'manual' : fileUpload.location!.source,
-            capture_date: fileUpload.captureDate?.toISOString() || null
+            capture_date: fileUpload.captureDate ? formatLocalDateTime(fileUpload.captureDate) : null
           })
 
         if (dbError) throw dbError

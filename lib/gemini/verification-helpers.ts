@@ -45,7 +45,22 @@ export async function getSunriseSunset(
 
     const sunrise = new Date(data.results.sunrise)
     const sunset = new Date(data.results.sunset)
-    const isDaytime = date >= sunrise && date <= sunset
+
+    // For local datetime strings, we need to compare the time portion only
+    // Extract time components for comparison
+    const captureTime = date.getHours() * 60 + date.getMinutes()
+    const sunriseTime = sunrise.getUTCHours() * 60 + sunrise.getUTCMinutes()
+    const sunsetTime = sunset.getUTCHours() * 60 + sunset.getUTCMinutes()
+
+    // Account for day rollover in sunrise/sunset times
+    let isDaytime
+    if (sunsetTime > sunriseTime) {
+      // Normal day (sunrise before sunset)
+      isDaytime = captureTime >= sunriseTime && captureTime <= sunsetTime
+    } else {
+      // Day spans midnight (sunset after midnight)
+      isDaytime = captureTime >= sunriseTime || captureTime <= sunsetTime
+    }
 
     return {
       sunrise: sunrise.toISOString(),

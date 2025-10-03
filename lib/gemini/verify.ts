@@ -39,10 +39,25 @@ export async function verifyContent(
     let locationName: string | null = null
     
     if (latitude && longitude && captureDate) {
-      const date = new Date(captureDate)
-      
+      // Parse the local datetime format: "2025-09-16 23:07:30"
+      // For local datetime strings, create a proper Date object
+      let date: Date
+      if (captureDate.includes('T')) {
+        // Already ISO format
+        date = new Date(captureDate)
+      } else {
+        // Local datetime format - parse as local time
+        const [datePart, timePart] = captureDate.split(' ')
+        const [year, month, day] = datePart.split('-').map(Number)
+        const [hour, minute, second] = timePart.split(':').map(Number)
+        date = new Date(year, month - 1, day, hour, minute, second)
+      }
+
+      // For API calls, use the date portion
+      const dateForApi = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+
       // Get sunrise/sunset data
-      sunriseSunsetData = await getSunriseSunset(latitude, longitude, date)
+      sunriseSunsetData = await getSunriseSunset(latitude, longitude, dateForApi)
       
       // Get weather data
       weatherData = await getWeatherData(latitude, longitude, date)
@@ -62,18 +77,21 @@ export async function verifyContent(
       
       // Only flag description-based mismatches if there is a description
       if (description) {
+        const localTimeStr = captureDate!.includes(' ') ? captureDate!.split(' ')[1] : new Date(captureDate!).toLocaleTimeString()
+
         if (mentionsDaytime && !sunriseSunsetData.isDaytime) {
-          issues.push(`Description mentions daytime, but timestamp (${new Date(captureDate!).toLocaleTimeString()}) indicates it was after sunset at this location`)
+          issues.push(`Description mentions daytime, but timestamp (${localTimeStr}) indicates it was after sunset at this location`)
         }
-        
+
         if (mentionsNighttime && sunriseSunsetData.isDaytime) {
-          issues.push(`Description mentions nighttime, but timestamp (${new Date(captureDate!).toLocaleTimeString()}) indicates it was during daylight hours`)
+          issues.push(`Description mentions nighttime, but timestamp (${localTimeStr}) indicates it was during daylight hours`)
         }
       }
 
       // Always provide this as a verification factor for Gemini to check against image
+      const captureTimeStr = captureDate!.includes(' ') ? captureDate!.split(' ')[1] : new Date(captureDate!).toLocaleTimeString()
       verificationFactors.push(
-        `Expected lighting at ${new Date(captureDate!).toLocaleTimeString()}: ${sunriseSunsetData.isDaytime ? 'Daytime/Daylight' : 'Nighttime/Dark'} (Sunrise: ${new Date(sunriseSunsetData.sunrise).toLocaleTimeString()}, Sunset: ${new Date(sunriseSunsetData.sunset).toLocaleTimeString()})`
+        `Expected lighting at ${captureTimeStr} (local time): ${sunriseSunsetData.isDaytime ? 'Daytime/Daylight' : 'Nighttime/Dark'} (Sunrise: ${new Date(sunriseSunsetData.sunrise).toLocaleTimeString()}, Sunset: ${new Date(sunriseSunsetData.sunset).toLocaleTimeString()})`
       )
     }
 
@@ -114,7 +132,7 @@ TRUSTED SOURCE DATA (Use this for PRIMARY verification):
 - Coordinates: ${latitude && longitude ? `${latitude}, ${longitude}` : 'Not provided'}
 
 📅 TIMESTAMP DATA:
-- Capture Date/Time: ${captureDate ? new Date(captureDate).toLocaleString() : 'Not provided'}
+- Capture Date/Time: ${captureDate || 'Not provided'} (Local time where photo was taken)
 
 ${sunriseSunsetData && !sunriseSunsetData.error ? `☀️ ASTRONOMICAL DATA (Sunrise-Sunset.org API):
 - Lighting at Capture Time: ${sunriseSunsetData.isDaytime ? 'Daytime/Daylight' : 'Nighttime/Dark'}
