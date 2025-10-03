@@ -186,6 +186,7 @@ export async function uploadVideoToGemini(videoUrl: string, mimeType: string = '
     console.log(`   Wrote to temp file: ${tempFilePath}`)
     
     // Upload to Gemini File API
+    const { GoogleAIFileManager } = await import('@google/generative-ai/server')
     const fileManager = new GoogleAIFileManager(process.env.GEMINI_API_KEY!)
     const uploadResponse = await fileManager.uploadFile(tempFilePath, {
       mimeType: mimeType,
@@ -248,9 +249,9 @@ export async function uploadVideoToGemini(videoUrl: string, mimeType: string = '
  */
 export async function deleteGeminiFile(fileUri: string): Promise<void> {
   try {
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
-    const fileManager = genAI.getFileManager()
-    
+    const { GoogleAIFileManager } = await import('@google/generative-ai/server')
+    const fileManager = new GoogleAIFileManager(process.env.GEMINI_API_KEY!)
+
     // Extract file name from URI (format: files/filename)
     const fileName = fileUri.split('/').pop()
     if (fileName) {

@@ -102,12 +102,8 @@ export async function verifyContent(
     }
 
     // Use gemini-2.5-flash for vision + text analysis with Google Search grounding
-    const model = genAI.getGenerativeModel({ 
-      model: 'gemini-2.5-flash',
-      // Enable Google Search grounding for fact-checking
-      tools: [{
-        googleSearch: {}
-      }]
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-2.5-flash'
     })
 
     const contextInfo = `
