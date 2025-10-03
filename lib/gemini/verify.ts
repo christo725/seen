@@ -56,8 +56,8 @@ export async function verifyContent(
       // For API calls, use the date portion
       const dateForApi = new Date(date.getFullYear(), date.getMonth(), date.getDate())
 
-      // Get sunrise/sunset data
-      sunriseSunsetData = await getSunriseSunset(latitude, longitude, dateForApi)
+      // Skip astronomical data - it was causing verification confusion
+      // sunriseSunsetData = await getSunriseSunset(latitude, longitude, dateForApi)
       
       // Get weather data
       weatherData = await getWeatherData(latitude, longitude, date)
@@ -66,34 +66,9 @@ export async function verifyContent(
       locationName = await getReverseGeocode(latitude, longitude)
     }
 
-    // Check for daylight/darkness mismatch
-    if (sunriseSunsetData && !sunriseSunsetData.error) {
-      const descLower = description ? description.toLowerCase() : ''
-      const mentionsDaytime = descLower.includes('sunny') || descLower.includes('daylight') || 
-                              descLower.includes('afternoon') || descLower.includes('morning') ||
-                              descLower.includes('day')
-      const mentionsNighttime = descLower.includes('night') || descLower.includes('dark') || 
-                                descLower.includes('evening') || descLower.includes('midnight')
-      
-      // Only flag description-based mismatches if there is a description
-      if (description) {
-        const localTimeStr = captureDate!.includes(' ') ? captureDate!.split(' ')[1] : new Date(captureDate!).toLocaleTimeString()
-
-        if (mentionsDaytime && !sunriseSunsetData.isDaytime) {
-          issues.push(`Description mentions daytime, but timestamp (${localTimeStr}) indicates it was after sunset at this location`)
-        }
-
-        if (mentionsNighttime && sunriseSunsetData.isDaytime) {
-          issues.push(`Description mentions nighttime, but timestamp (${localTimeStr}) indicates it was during daylight hours`)
-        }
-      }
-
-      // Always provide this as a verification factor for Gemini to check against image
-      const captureTimeStr = captureDate!.includes(' ') ? captureDate!.split(' ')[1] : new Date(captureDate!).toLocaleTimeString()
-      verificationFactors.push(
-        `Expected lighting at ${captureTimeStr} (local time): ${sunriseSunsetData.isDaytime ? 'Daytime/Daylight' : 'Nighttime/Dark'} (Sunrise: ${new Date(sunriseSunsetData.sunrise).toLocaleTimeString()}, Sunset: ${new Date(sunriseSunsetData.sunset).toLocaleTimeString()})`
-      )
-    }
+    // Remove problematic astronomical verification that causes confusion
+    // The sunrise/sunset API and timezone handling was causing false day/night readings
+    // Let the AI analyze lighting conditions directly from the image instead
 
     // Determine video MIME type from file extension
     const fileExtension = imageUrl.split('.').pop()?.toLowerCase()
@@ -134,11 +109,9 @@ TRUSTED SOURCE DATA (Use this for PRIMARY verification):
 📅 TIMESTAMP DATA:
 - Capture Date/Time: ${captureDate || 'Not provided'} (Local time where photo was taken)
 
-${sunriseSunsetData && !sunriseSunsetData.error ? `☀️ ASTRONOMICAL DATA (Sunrise-Sunset.org API):
-- Lighting at Capture Time: ${sunriseSunsetData.isDaytime ? 'Daytime/Daylight' : 'Nighttime/Dark'}
-- Sunrise Time: ${new Date(sunriseSunsetData.sunrise).toLocaleTimeString()}
-- Sunset Time: ${new Date(sunriseSunsetData.sunset).toLocaleTimeString()}
-- Authority: Calculated astronomical data - DEFINITIVE for time-of-day verification` : ''}
+☀️ LIGHTING ANALYSIS:
+- Time of Capture: ${captureDate || 'Unknown'}
+- Note: Use image analysis to determine lighting conditions (day/night) rather than astronomical calculations
 
 ${weatherData ? `🌤️ WEATHER DATA (OpenWeatherMap API):
 - Conditions: ${weatherData.description}
@@ -184,10 +157,9 @@ Your verification MUST follow this priority order:
 LEVEL 1 (PRIMARY): TEXT-BASED FACT-CHECKING AGAINST TRUSTED SOURCES
 - This is your FIRST and MOST IMPORTANT verification layer
 - Check ALL text claims against:
-  a) PROVIDED API data (weather, astronomical, geographic) - use this first
+  a) PROVIDED API data (weather, geographic) - use this first
   b) GOOGLE SEARCH (when API data is insufficient or for historical data)
 - Weather claims → Weather API data FIRST, then Google Search for historical weather if needed
-- Time-of-day claims → Astronomical data (sunrise/sunset times)
 - Location claims → Geographic data (coordinates, place names)
 - Date/time claims → Timestamp verification
 - News events, disasters, public incidents → MUST use Google Search
@@ -211,12 +183,12 @@ VERIFICATION PROCESS:
 ${hasDescription ? `
 STEP 1 - TEXT FACT-CHECKING (PRIMARY):
 - Extract all verifiable claims from description
-- Check provided API data first (weather, astronomical, geographic)
+- Check provided API data first (weather, geographic)
 - IF API data is current but you need historical data → USE GOOGLE SEARCH
 - Weather claim? → Check API data, then search "weather [location] [exact date]"
 - News event claim? → SEARCH "[event name] [location] [date]" and verify with news sources
 - Historical incident? → SEARCH for authoritative sources (news, government reports)
-- Time claim? → Check against sunrise/sunset data
+- Time/lighting claim? → Use image analysis to determine day/night conditions
 - Location claim? → Verify coordinates and place name accuracy
 ${fileType === 'video' ? '- For videos: Verify claims about events, actions, and conditions shown across frames' : ''}
 - DOCUMENT EXACT data from trusted sources WITH SOURCE CITATIONS
@@ -230,11 +202,11 @@ ${fileType === 'video'
 - Are there visual contradictions with verified facts?`
   : `- Does image support the verified facts from Step 1?
 - Are there visual elements that contradict trusted source data?
-- Does image lighting match astronomical predictions?
+- Does image lighting appear consistent with the timestamp (day/night)?
 - Do visible weather conditions align with verified weather data?`}
 ` : `
 STEP 1 - CONTEXTUAL VERIFICATION (PRIMARY):
-- Check provided API data (sunrise/sunset, current weather, location)
+- Check provided API data (current weather, location)
 - IF capture date is in the past → USE GOOGLE SEARCH for historical weather
 - Search "weather [location] [exact date]" for historical verification
 - Verify any visible events or incidents through web search
@@ -244,12 +216,12 @@ STEP 2 - ${fileType === 'video' ? 'VIDEO' : 'IMAGE'} ANALYSIS (SECONDARY):
 ${fileType === 'video'
   ? `- What does the video actually show across frames?
 - Does it align with trusted source data?
-- Are there contradictions with astronomical/weather data?
+- Are there contradictions with weather data?
 - Does location appear plausible given coordinates?
 - Are there any anomalies or inconsistencies across frames?`
   : `- What does the image actually show?
 - Does it align with trusted source data?
-- Are there contradictions with astronomical/weather data?
+- Are there contradictions with weather data?
 - Does location appear plausible given coordinates?`}
 `}
 
@@ -264,11 +236,11 @@ Example format:
 Image analysis: Visual confirms clear skies and bright sunlight, consistent with weather data."
 
 TRUSTED SOURCES YOU HAVE ACCESS TO:
-- Sunrise/Sunset API: Authoritative astronomical data (provided)
 - Weather API: Current meteorological conditions (provided - use Google Search for historical)
 - Geocoding API: Location name verification (provided)
 - Timestamp: Exact date/time of capture (provided)
 - Google Search: For historical data, news events, fact verification
+- Image Analysis: For lighting conditions, weather, and visual verification
 
 WHEN TO USE GOOGLE SEARCH:
 ✓ Capture date is in the PAST (need historical weather)
@@ -282,7 +254,7 @@ BE THOROUGH BUT FAIR:
 - Prioritize mainstream trusted sources (major news outlets, government agencies, weather services)
 - ALWAYS cite your sources with URLs when you use web search
 - Weather reports are MORE authoritative than visual weather assessment
-- Astronomical data is DEFINITIVE for sunrise/sunset claims
+- Use image analysis to determine lighting conditions (day/night/twilight)
 - Minor subjective descriptions are okay ("beautiful", "amazing")
 - Focus on FACTUAL discrepancies between claims and trusted sources
 
